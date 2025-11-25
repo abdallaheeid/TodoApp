@@ -1,8 +1,8 @@
 from database import Base
-from sqlalchemy import TIMESTAMP, Column, String, Boolean, Integer, text
-from sqlalchemy.sql import func
-from fastapi_utils.guid_type import GUID, GUID_DEFAULT_SQLITE
-import uuid
+from sqlalchemy import Column, String, Boolean, Integer
+from database import Base
+from sqlalchemy import Column, String, Boolean, Integer, ForeignKey
+from sqlalchemy.orm import relationship
 
 class TODO(Base):
     __tablename__ = 'todos'
@@ -15,3 +15,29 @@ class TODO(Base):
     #                    nullable=False, server_default=func.now())
     # updatedAt = Column(TIMESTAMP(timezone=True),
     #                    default=None, onupdate=func.now())
+    
+    # Foreign key to the User Table
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Many-to-One relationship
+    owner = relationship("User", back_populates="todos")
+    
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, nullable=False, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    hashed_pass = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    role = Column(String)
+
+    # One-to-Many relationship
+    todos = relationship(
+        "TODO",
+        back_populates="owner",
+        cascade="all, delete-orphan"
+    )
