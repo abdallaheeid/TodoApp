@@ -52,6 +52,7 @@ async def register(user: UserCreate, db: dp_dependency):
         first_name=user.first_name,
         last_name=user.last_name,
         hashed_pass=hash_password(user.password),
+        role=user.role,
         is_active=True
     )
 
