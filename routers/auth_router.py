@@ -82,7 +82,7 @@ async def login(
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User is inactive")
 
-    token = create_access_token({"sub": user.username}, timedelta(minutes=20))
+    token = create_access_token({"sub": user.username, "id": user.id, "role": user.role}, timedelta(minutes=20))
 
     return {
         "access_token": token,

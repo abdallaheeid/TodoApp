@@ -35,14 +35,23 @@ class TodoRequest(BaseModel):
     complete: bool = False    
     
 @router.get("/api/todos", status_code=status.HTTP_200_OK)
-async def get_all_todos(db: dp_dependency):
-    todos = db.query(models.TODO).all()
+async def get_all_todos(current_user: user_dependency, db: dp_dependency):
+    
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
+    todos = db.query(models.TODO).filter(TODO.user_id == current_user.id).all()
     return todos
 
 @router.get("/api/todos/{todo_id}", status_code=status.HTTP_200_OK)
-async def get_todo_by_id(db: dp_dependency, 
+async def get_todo_by_id(current_user: user_dependency,
+                         db: dp_dependency, 
                          todo_id: int = Path(..., gt=0, description="The ID of the todo (must be > 0)")):
-    todo = db.query(TODO).filter(TODO.id == todo_id).first()
+    
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
+    todo = db.query(TODO).filter(TODO.id == todo_id, TODO.user_id == current_user.id).first()
     
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
@@ -74,11 +83,16 @@ async def create_todo(current_user:user_dependency,
 
 @router.put("/api/todos/{todo_id}", status_code=status.HTTP_200_OK)
 async def update_todo(
+    current_user: user_dependency,
     db: dp_dependency,
     todo: TodoRequest,
     todo_id: int = Path(..., gt=0)
 ):
-    existing_todo = db.query(TODO).filter(TODO.id == todo_id).first()
+    
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
+    existing_todo = db.query(TODO).filter(TODO.id == todo_id, TODO.user_id == current_user.id).first()
 
     if not existing_todo:
         raise HTTPException(status_code=404, detail="Todo not found")
@@ -95,10 +109,15 @@ async def update_todo(
 
 @router.delete("/api/todos/{todo_id}", status_code=status.HTTP_200_OK)
 async def delete_todo(
+    current_user: user_dependency,
     db: dp_dependency,
     todo_id: int = Path(..., gt=0, description="Todo ID")
 ):
-    todo = db.query(TODO).filter(TODO.id == todo_id).first()
+    
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
+    todo = db.query(TODO).filter(TODO.id == todo_id, TODO.user_id == current_user.id).first()
 
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
