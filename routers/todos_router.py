@@ -7,6 +7,7 @@ from typing_extensions import Annotated
 from pydantic import BaseModel, Field
 from typing import Optional
 from fastapi import Path
+from .auth import get_current_user
 
 router = APIRouter()
 
@@ -25,6 +26,7 @@ async def root():
     }
 
 dp_dependency = Annotated[Session, Depends(get_db)]
+user_dependency = Annotated[dict, Depends(get_current_user)]
 
 class TodoRequest(BaseModel):
     title: str = Field(min_length=3)
@@ -49,12 +51,19 @@ async def get_todo_by_id(db: dp_dependency,
     
 
 @router.post("/api/todo", status_code=status.HTTP_201_CREATED)
-async def create_todo(db: dp_dependency, todo: TodoRequest):
+async def create_todo(current_user:user_dependency, 
+                      db: dp_dependency, 
+                      todo: TodoRequest):
+    
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
     new_todo = TODO(
         title=todo.title,
         description=todo.description,
         priority=todo.priority,
-        complete=todo.complete
+        complete=todo.complete,
+        user_id=current_user.id
     )
 
     db.add(new_todo)

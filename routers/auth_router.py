@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from models import User
 from database import SessionLocal
+from fastapi.security import OAuth2PasswordRequestForm
 from typing_extensions import Annotated
 from .auth import (
     hash_password,
@@ -12,7 +13,7 @@ from .auth import (
     get_current_user,
     authenticate_user)
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 def get_db():
     db = SessionLocal()
@@ -37,7 +38,7 @@ class UserLogin(BaseModel):
     password: str
     
 
-@router.post("/auth/register", status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(user: UserCreate, db: dp_dependency):
 
     # Check if email already exists
@@ -66,15 +67,17 @@ async def register(user: UserCreate, db: dp_dependency):
     
 
 @router.post("/login")
-async def login(data: UserLogin, db: Session = Depends(get_db)):
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    user = authenticate_user(db, form_data.username, form_data.password)
 
-    if not authenticate_user(db, data.username, data.password):
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password"
         )
-    
-    user = db.query(User).filter(User.username == data.username).first()
 
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User is inactive")

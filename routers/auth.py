@@ -12,7 +12,7 @@ SECRET_KEY = "55f6adb5826192bc65e739470ffd3a0a06b7076f41cd59c2b5cf4c06990152c4"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 def get_db():
@@ -61,11 +61,11 @@ def authenticate_user(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
 
     if not user:
-        return False
+        return None
     if not verify_password(password, user.hashed_pass):
-        return False
+        return None
 
-    return True
+    return user
 
 
 def get_current_user(
@@ -73,12 +73,12 @@ def get_current_user(
     db: Session = Depends(get_db)
 ):
     payload = decode_access_token(token)
-    email: str = payload.get("sub")
+    username: str = payload.get("sub")
 
-    if email is None:
+    if username is None:
         raise HTTPException(status_code=401, detail="Invalid token payload")
 
-    user = db.query(User).filter(User.email == email).first()
+    user = db.query(User).filter(User.username == username).first()
 
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
