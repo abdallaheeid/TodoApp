@@ -23,6 +23,9 @@ class UserVerification(BaseModel):
     current_password: str = Field(min_length=4)
     new_password: str = Field(min_length=4)
     confirm_password: str = Field(min_length=4)
+    
+class PhoneUpdate(BaseModel):
+    phone_number: str = Field(..., min_length=6, max_length=20, example="+49123456789")
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
@@ -52,5 +55,24 @@ async def change_password(
 
     db.commit()
     
+    return
+
+@router.put("/update_phone", status_code=status.HTTP_204_NO_CONTENT)
+async def update_phone_number(
+    current_user: user_dependency,
+    db: dp_dependency,
+    data: PhoneUpdate):
+    
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
+    user = db.query(User).filter(User.id == current_user.id).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.phone_number = data.phone_number
+
+    db.commit()    
     return
         

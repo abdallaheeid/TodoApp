@@ -32,6 +32,7 @@ class UserCreate(BaseModel):
     last_name: str
     password: str
     role: str
+    phone_number: str
 
 class UserLogin(BaseModel):
     username: str
@@ -53,6 +54,7 @@ async def register(user: UserCreate, db: dp_dependency):
         last_name=user.last_name,
         hashed_pass=hash_password(user.password),
         role=user.role,
+        phone_number=user.phone_number,
         is_active=True
     )
 
